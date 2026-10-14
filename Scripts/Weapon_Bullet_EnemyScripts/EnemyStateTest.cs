@@ -1,0 +1,71 @@
+using System.Collections;
+using System.Collections.Generic;
+//using UnityEditor;
+using UnityEngine;
+using UnityEngine.UI;
+
+public class EnemyStateTest : MonoBehaviour
+{
+    public InGameUIManager gameUIManager;
+    public EnemyData data;
+    public float EnemyHp;
+    public Slider hpSlider;
+
+    [Header("State")]
+    public float moveSpeed = 3f;
+    public float distance = 3f;
+    public Transform target;
+
+    [Header("Circle")]
+    [Range(0, 30)]
+    public float viewRange;
+    [Range(0, 360)]
+    public float viewAngle;
+
+
+    public float radius = 3f;
+
+    public LayerMask targetMask;
+    
+    
+    private void Awake()
+    {
+        hpSlider.value = 1f;
+        if (data != null)
+        {
+            EnemyHp = data.enemyHp;       
+        }
+    }
+    public void Update()
+    {
+        HPUI();
+    }
+
+    public void TakeDamage(float damage)
+    {
+        EnemyHp -= damage;
+        EnemyHp = Mathf.Clamp(EnemyHp, 0, data.enemyHp);
+        
+        Debug.Log("현재 HP : " + EnemyHp);
+        if (0 >= EnemyHp)
+        {
+            EnemyHp = 0f;
+            
+            Debug.Log("적 처치");
+        }
+        //HPUI();
+    }
+    public void HPUI()
+    {
+        gameUIManager.HpUI(hpSlider, EnemyHp, data.enemyHp);
+    }
+
+    
+    //public void OnDrawGizmos()
+    //{
+    //    Handles.DrawSolidArc(transform.position,Vector3.up,transform.forward, viewAngle/2f, radius);
+    //    Handles.DrawSolidArc(transform.position, Vector3.up, transform.forward, -viewAngle / 2f, radius);
+
+    //}
+
+}

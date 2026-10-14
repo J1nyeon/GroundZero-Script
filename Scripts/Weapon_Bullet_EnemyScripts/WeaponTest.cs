@@ -1,0 +1,151 @@
+using JetBrains.Annotations;
+using System.Collections;
+using System.Collections.Generic;
+using TMPro;
+using UnityEngine;
+using UnityEngine.UIElements;
+
+public class WeaponTest : MonoBehaviour
+{
+    public WeaponData data;
+    public BulletPoolingTest pool;
+    public PoolingBulletHoles poolHoles;
+    public PlayerCameraController PlayerCC;
+
+    public int bullet;
+    public float currnetDamage;
+    public Transform muzzlePos;
+    public float maxDistance = 100f;
+    //public GameObject paticleMuzzleEffect;
+    public ParticleSystem particle;
+
+    public Camera cam;
+
+
+    public bool canShoot = true;
+    public float nextFireTime;
+    public bool reloadCheck = false;
+
+    public Animator animator;
+
+    public float takeWeaponAniTime = 1.2f;
+    public LayerMask layer;
+
+    public AudioSource shootSource;
+    public AudioClip clipFireSFX;
+    public void Awake()
+    {
+        if (data != null)
+        {
+            bullet = data.maxBullet;
+            currnetDamage = data.currentShotDamage;
+        }
+        
+    }
+    public void OnEnable()
+    {
+        StartCoroutine(CoWeaponStartAnim());
+    }
+
+    public void Fire()
+    {
+        if (reloadCheck == false && Time.time >= nextFireTime)
+        {
+            Shoot();
+            //MuzzleEffect();
+            MuzzlePaticle();
+            //SFXManager.instance.PlaySFX(clipFireSFX);
+            shootSource.PlayOneShot(clipFireSFX);
+            nextFireTime = Time.time + data.fireRate;
+        }
+        
+    }
+    public void Shoot()
+    {
+        if (canShoot == false) return;
+        bullet--;
+        //Debug.Log($"남은 탄약 개수 : {bullet}");
+        Vector3 targetPoint;
+        
+        if (Physics.Raycast(cam.transform.position, cam.transform.forward, out RaycastHit hit, maxDistance, layer))
+        {
+            targetPoint = hit.point;
+            //if (hit.collider.CompareTag("Wall"))
+            //{
+            //    {//GameObject holes = poolHoles.GetObjectBulletHoles();
+
+            //        //holes.transform.position = targetPoint;
+            //        //holes.transform.rotation = Quaternion.LookRotation(hit.normal);
+            //        //StartCoroutine(CoEffectSet(holes));
+
+            //        // 벽을 감지하고 여기서 맞은곳의 좌표를 저장
+            //        //TargetPoint(targetPoint);
+            //    }
+            //}
+            //Debug.Log("카메라 레이에 충돌한 타겟 : " + hit.collider.gameObject.name);
+        }
+        else 
+        {
+            targetPoint = cam.transform.position + cam.transform.forward * maxDistance;
+            //Debug.Log("카메라 레이에 충돌한 것 없음 ");
+        }
+        GameObject bulletPool = pool.GetBullet();
+        
+        Vector3 dir = (targetPoint - muzzlePos.position).normalized;
+        bulletPool.transform.position = muzzlePos.position;
+        bulletPool.transform.forward = dir;
+        bulletPool.SetActive(true);
+        PlayerCC.Recoil(data.verticalRecoil,data.horizontalRecoil);
+    }
+
+    public Vector3 TargetPoint(Vector3 targetPoints)
+    {
+        transform.position = targetPoints;
+        return transform.position;
+    }
+    public void MuzzlePaticle()
+    {
+        particle.Play();
+    }
+    public void Reload()
+    {
+        if (reloadCheck == true) return;
+        StartCoroutine(CoReload());
+    }
+
+    private IEnumerator CoReload()
+    {
+        reloadCheck = true;
+        canShoot = false;
+        animator.SetBool("Is Reloading", true);
+
+        //Debug.Log("장전중 .. ");
+
+        yield return new WaitForSeconds(data.reloadTime);
+
+        bullet = data.maxBullet;
+        animator.SetBool("Is Reloading", false);
+        reloadCheck = false;
+        canShoot = true;
+        //Debug.Log("장전 완료");
+    }
+
+    private IEnumerator CoWeaponStartAnim()
+    {
+        canShoot = false;
+
+        yield return new WaitForSeconds(takeWeaponAniTime);
+        canShoot = true;
+    }
+    public IEnumerator CoEffectSet(GameObject holes)
+    {
+        holes.SetActive(true);
+
+        yield return new WaitForSeconds(2f);
+        holes.SetActive(false);
+    }
+    private void Update()
+    {
+        Debug.DrawRay(transform.position, Vector3.forward * 10f, Color.red);
+    }
+}

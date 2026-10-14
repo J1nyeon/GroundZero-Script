@@ -1,0 +1,116 @@
+using DG.Tweening;
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+using UnityEngine.UI;
+
+public class PlayerMove : MonoBehaviour
+{
+    public InGameSoundManager soundManager;
+    
+    public Rigidbody rb;
+    [Header("Move")]
+    public float moveSpeed = 5f;
+    public float sprintSpeed = 10f;
+    public float applySpeed;
+    public bool isMove = false;
+    public Animator animator;
+
+    private float xInput;
+    private float zInput;
+
+    [Header("Jump")]
+    public float jumpForce = 5f;
+    private bool isJumping = false;
+    public bool isGrounded;
+
+    //public CinemachineImpulseSource CI;
+    //public float cameraShake = 0.02f;
+    public bool canShoot = true;
+    public GameObject characterUI;
+
+    public AudioSource source;
+    //public AudioClip currentMove;
+    public AudioClip[] moveCurrent;
+    
+
+    void Start()
+    {
+        applySpeed = moveSpeed;
+    }
+    public void Move()
+    {
+        Vector3 dirMove = (transform.right * xInput + transform.forward * zInput).normalized;
+        dirMove *= applySpeed;
+        rb.velocity = new Vector3(dirMove.x, rb.velocity.y, dirMove.z);
+        
+        
+    }
+    public void Jump()
+    {
+        rb.velocity = new Vector3(rb.velocity.x, 0f, rb.velocity.z);
+        rb.AddForce(Vector3.up * jumpForce ,ForceMode.Impulse);
+        isGrounded = false;
+        canShoot = false; // 점프중일경우엔 총을 쏠 수 없음.
+    }
+    // Update is called once per frame
+    void Update()
+    {
+        xInput = Input.GetAxisRaw("Horizontal");
+        zInput = Input.GetAxisRaw("Vertical");
+
+        bool isMove = rb.velocity.magnitude > 1f;
+
+        characterUI.SetActive(isMove);
+        AudioClip clip = moveCurrent[Random.Range(0, moveCurrent.Length)];
+
+        if (Input.GetKey(KeyCode.LeftShift))
+        {
+            applySpeed = sprintSpeed;
+        }
+        else
+        {
+            applySpeed = moveSpeed;
+        }
+        if (Input.GetKeyDown(KeyCode.Space) && isGrounded == true)
+        {
+            isJumping = true;
+        }
+        
+        if (isMove == true && isGrounded == true)
+        {
+            if (source.isPlaying == false)
+            {
+                //SFXManager.instance.PlayOneSFX(source, clip);
+                soundManager.PlayOneSFX(source, clip);
+            }
+        }
+        //else if (applySpeed == sprintSpeed && isMove == true && isGrounded == true)
+        //{
+        //    SFXManager.instance.PlaySFX(clip);
+        //}
+    }
+
+    private void OnCollisionEnter(Collision collision)
+    {
+        if (collision.gameObject.CompareTag("Grounded") || collision.gameObject.CompareTag("MapObject"))
+        {
+            isGrounded = true;
+            canShoot = true;
+            //Debug.Log("점프 가능");
+        }
+    }
+    private void FixedUpdate()
+    {
+        if (isJumping == true)
+        {
+            Jump();
+            isJumping = false;
+        }
+        if (isGrounded == true)
+        {
+            Move();
+        }
+    }
+  
+}
